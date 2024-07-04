@@ -1,0 +1,16 @@
+{
+    "name": "dotnet",
+    "dockerFile": "Dockerfile",
+    "extensions": [
+      "ms-dotnettools.csharp",
+      "ms-vscode.vscode-node-azure-pack",
+      "ms-vscode.azurecli",
+      "ms-vscode.azure-account",
+      "ms-azuretools.vscode-docker"
+    ],
+    "settings": {
+      "terminal.integrated.shell.linux": "/bin/bash"
+    },
+    "postCreateCommand": "dotnet restore"
+  }
+  
