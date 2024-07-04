@@ -1,12 +1,11 @@
-﻿// See https://aka.ms/new-console-template for more information
-
-using System.Diagnostics;
+﻿using System.Diagnostics;
 
 Console.WriteLine("Hello, World! Your app is running in a container!");
 await Task.Delay(1000); // Correct method name for delay
 
 try
 {
+    // Reporting progress with IProgress interface
     IProgress<int> reportProgress = new Progress<int>(percent =>
     {
         Console.WriteLine($"Progress: {percent}%");
@@ -30,32 +29,55 @@ try
     var post = posts.FirstOrDefault(p => p.id == postId);
     Console.WriteLine($"First post: {post?.title}");
 
-    // Use SemaphoreSlim to limit the number of concurrent tasks
+    // Concurrency: Limiting the number of concurrent tasks using SemaphoreSlim
     var semaphore = new SemaphoreSlim(3); // Limit to 3 concurrent requests
+
+    // Stopwatch to measure time taken to fetch comments
     var fetchCommentsStopwatch = Stopwatch.StartNew();
     var completedTasks = 0;
+
+    // Parallelism: Creating a collection of tasks to fetch comments for each post concurrently
     var getCommentsTasks = posts.Select(async post =>
     {
+        // Limiting concurrency with SemaphoreSlim
         await semaphore.WaitAsync();
         try
         {
-            var comments = await api.GetComments(post.id);
-            Interlocked.Increment(ref completedTasks);
-            reportProgress.Report((int)((float)completedTasks / posts.Count * 100));
-            return comments;
+            var comments = await api.GetComments(post.id); // Asynchronous API call to fetch comments
+            Interlocked.Increment(ref completedTasks); // Thread-safe increment of completed tasks count
+            reportProgress.Report((int)((float)completedTasks / posts.Count * 100)); // Reporting progress
+            return comments; // Returning comments for the current post
         }
         finally
         {
-            semaphore.Release();
+            semaphore.Release(); // Releasing semaphore slot
         }
     }).ToList();
 
-    var commentsLists = await Task.WhenAll(getCommentsTasks);
-    fetchCommentsStopwatch.Stop();
+    var commentsLists = new List<List<Comment>>();
+
+    // Using Task.WhenAny() to process tasks as they complete
+    while (getCommentsTasks.Any())
+    {
+        var finishedTask = await Task.WhenAny(getCommentsTasks); // Awaiting any task to complete
+        getCommentsTasks.Remove(finishedTask); // Removing completed task from the list
+
+        try
+        {
+            commentsLists.Add(await finishedTask); // Adding result of completed task to comments list
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching comments: {ex.Message}");
+            // Optionally handle specific task exceptions here
+        }
+    }
+
+    fetchCommentsStopwatch.Stop(); // Stopping stopwatch after all tasks complete
 
     // Example: Get comments for the first post and print them
     var postComments = commentsLists.FirstOrDefault(comments => comments.Any(c => c.postId == postId)) ?? throw new SomethingWentWrongException($"Comments for post {postId} not found");
-    Console.WriteLine($"Comments: {commentsLists.Length}");
+    Console.WriteLine($"Comments: {commentsLists.Count}");
     totalStopwatch.Stop(); // Stop measuring total time
 
     // Output detailed timings
@@ -71,4 +93,3 @@ catch (Exception ex)
 {
     Console.WriteLine($"General error: {ex.Message}");
 }
-    
