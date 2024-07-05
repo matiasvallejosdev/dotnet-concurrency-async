@@ -18,7 +18,7 @@ public class PlaceholderAPIRepository : IPlaceholderAPIRepository
 
     public async Task<List<Post>> GetPosts()
     {
-        using var response = await AsyncHelper.RetryAsync(() => _client.GetAsync("posts"));
+        using var response = await _client.GetAsync("posts").RetryAsync();
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
         return JsonSerializer.Deserialize<List<Post>>(content) ?? new List<Post>();
@@ -26,7 +26,7 @@ public class PlaceholderAPIRepository : IPlaceholderAPIRepository
 
     public async Task<List<Comment>> GetComments()
     {
-        using var response = await AsyncHelper.RetryAsync(() => _client.GetAsync("comments"));
+        using var response = await _client.GetAsync("comments").TimeoutAfter(1000);
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
         return JsonSerializer.Deserialize<List<Comment>>(content) ?? new List<Comment>();
@@ -34,8 +34,7 @@ public class PlaceholderAPIRepository : IPlaceholderAPIRepository
 
     public async Task<List<Comment>> GetComment(int postId)
     {
-        await AsyncHelper.Delay(_delay);
-        using var response = await AsyncHelper.RetryAsync(() => _client.GetAsync($"comments?postId={postId}"));
+        using var response = await _client.GetAsync($"comments?postId={postId}").TimeExecutionAsync().DelayExecution(_delay);
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
         return JsonSerializer.Deserialize<List<Comment>>(content) ?? new List<Comment>();
