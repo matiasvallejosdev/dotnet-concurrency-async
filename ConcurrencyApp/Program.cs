@@ -31,12 +31,13 @@ try
     var fetchPostsStopwatch = Stopwatch.StartNew();
     var posts = await postService.GetPosts(); // Asynchronous API call to fetch posts with cancellation support
     fetchPostsStopwatch.Stop();
+    Console.WriteLine($"Posts: {posts.Count}");
 
     if (posts == null || !posts.Any())
     {
         throw new SomethingWentWrongException("Posts not found");
     }
-
+    
     // Concurrency: Limiting the number of concurrent tasks using SemaphoreSlim
     var semaphore = new SemaphoreSlim(20); // Limit to 3 concurrent requests
 

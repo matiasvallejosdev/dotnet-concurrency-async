@@ -1,11 +1,14 @@
 using System.Text.Json;
+using ConcurrencyApp.Async;
 
 namespace ConcurrencyApp.Repository;
+
+
 
 public class PlaceholderAPIRepository : IPlaceholderAPIRepository
 {
     private const string BaseUrl = "https://jsonplaceholder.typicode.com/";
-    private const int _delay = 300;
+    private const int _delay = 800;
     private protected readonly HttpClient _client;
 
     public PlaceholderAPIRepository()
@@ -15,26 +18,26 @@ public class PlaceholderAPIRepository : IPlaceholderAPIRepository
 
     public async Task<List<Post>> GetPosts()
     {
-        var response = await _client.GetAsync("posts");
+        using var response = await AsyncHelper.RetryAsync(() => _client.GetAsync("posts"));
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
-        return JsonSerializer.Deserialize<List<Post>>(content) ?? [];
+        return JsonSerializer.Deserialize<List<Post>>(content) ?? new List<Post>();
     }
 
     public async Task<List<Comment>> GetComments()
     {
-        var response = await _client.GetAsync("comments");
+        using var response = await AsyncHelper.RetryAsync(() => _client.GetAsync("comments"));
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
-        return JsonSerializer.Deserialize<List<Comment>>(content) ?? [];
+        return JsonSerializer.Deserialize<List<Comment>>(content) ?? new List<Comment>();
     }
 
     public async Task<List<Comment>> GetComment(int postId)
     {
-        await Task.Delay(_delay); // Simulate a delay in the API call
-        var response = await _client.GetAsync($"comments?postId={postId}");
+        await AsyncHelper.Delay(_delay);
+        using var response = await AsyncHelper.RetryAsync(() => _client.GetAsync($"comments?postId={postId}"));
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
-        return JsonSerializer.Deserialize<List<Comment>>(content) ?? [];
+        return JsonSerializer.Deserialize<List<Comment>>(content) ?? new List<Comment>();
     }
 }
