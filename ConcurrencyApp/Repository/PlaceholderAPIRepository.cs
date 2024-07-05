@@ -1,5 +1,6 @@
 using System.Text.Json;
 using ConcurrencyApp.Async;
+using ConcurrencyApp.Filters;
 using ConcurrencyApp.Models;
 
 namespace ConcurrencyApp.Repository;
@@ -17,9 +18,23 @@ public class PlaceholderAPIRepository : IPlaceholderAPIRepository
         _client = new HttpClient { BaseAddress = new Uri(BaseUrl) };
     }
 
-    public async Task<List<Post>> GetPosts()
+    public async Task<List<Post>> GetPosts(PostFilter? postFilter = null)
     {
-        using var response = await _client.GetAsync("posts").RetryAsync();
+        var query = "?";
+        if (postFilter!.userId.HasValue)
+        {
+            query += $"userId={postFilter.userId}";
+        }
+        if (!string.IsNullOrWhiteSpace(postFilter.title))
+        {
+            query += string.IsNullOrWhiteSpace(query) ? $"title={postFilter.title}" : $"&title={postFilter.title}";
+        }
+        if (!string.IsNullOrWhiteSpace(postFilter.body))
+        {
+            query += string.IsNullOrWhiteSpace(query) ? $"body={postFilter.body}" : $"&body={postFilter.body}";
+        }
+        Console.WriteLine($"Query: {query}");
+        using var response = await _client.GetAsync($"posts{query}").TimeExecutionAsync().DelayExecution(_delay);
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
         return JsonSerializer.Deserialize<List<Post>>(content) ?? new List<Post>();
