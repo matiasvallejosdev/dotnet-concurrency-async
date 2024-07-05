@@ -1,5 +1,6 @@
 using System.Text.Json;
 using ConcurrencyApp.Async;
+using ConcurrencyApp.Models;
 
 namespace ConcurrencyApp.Repository;
 
@@ -38,5 +39,14 @@ public class PlaceholderAPIRepository : IPlaceholderAPIRepository
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
         return JsonSerializer.Deserialize<List<Comment>>(content) ?? new List<Comment>();
+    }
+
+    public async Task<List<User>> GetUsers()
+    {
+        var cts = new CancellationTokenSource(1000); // Set timeout for 1000 milliseconds (1 second)
+        using var response = await _client.GetAsync("users").RetryAsync().WithCancellation(cts.Token);
+        response.EnsureSuccessStatusCode();
+        var content = await response.Content.ReadAsStringAsync();
+        return JsonSerializer.Deserialize<List<User>>(content) ?? new List<User>();
     }
 }

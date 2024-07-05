@@ -17,6 +17,26 @@ await Task.Delay(1000); // Correct method name for delay
 
 try
 {
+    Console.WriteLine("Fetching users...");
+    var users = await apiRepository.GetUsers(); // Asynchronous API call to fetch users with cancellation support
+    Console.WriteLine($"Users: {users.Count}");
+
+    var firstUser = users.FirstOrDefault();
+    if (firstUser != null)
+    {
+        // Print user details
+        Console.WriteLine($"First user: {firstUser.name} ({firstUser.username})");
+        Console.WriteLine($"Email: {firstUser.email}");
+        Console.WriteLine($"Phone: {firstUser.phone}");
+        Console.WriteLine($"Website: {firstUser.website}");
+        Console.WriteLine($"Company: {firstUser.company?.name}");
+        Console.WriteLine($"Address: {firstUser.address?.city}, {firstUser.address?.zipcode}");
+    }
+    else
+    {
+        throw new SomethingWentWrongException("User not found");
+    }
+
     Console.WriteLine("Fetching posts and comments...");
 
     // Reporting progress with IProgress interface
